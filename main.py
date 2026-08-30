@@ -7,6 +7,9 @@ from telegram.ext import Application
 from app.engines.news.arzdigital_breaking_worker import (
     arzdigital_breaking_job,
 )
+from app.engines.news.market_snapshot_worker import (
+    market_snapshot_job,
+)
 from app.engines.news.wallex_news_worker import (
     wallex_news_job,
 )
@@ -52,11 +55,19 @@ async def main():
         name="wallex-news-worker",
     )
 
+    application.job_queue.run_repeating(
+        market_snapshot_job,
+        interval=14400,
+        first=90,
+        name="market-snapshot-worker",
+    )
+
     logger.info("ArzDigital News Worker: ON")
     logger.info("Wallex News Worker: ON")
+    logger.info("Market Snapshot Worker: ON (every 4h)")
 
     # Start the application WITHOUT polling for updates.
-    # This service only sends outbound news messages, so it
+    # This service only sends outbound messages, so it
     # never calls getUpdates. This avoids 409 Conflict with
     # any other bot or deployment using the same BOT_TOKEN.
     await application.initialize()
@@ -66,7 +77,7 @@ async def main():
 
     try:
         # Keep the service alive forever; the JobQueue keeps
-        # checking for fresh news in the background.
+        # checking for fresh news and posting price cards.
         await asyncio.Event().wait()
     finally:
         await application.stop()
