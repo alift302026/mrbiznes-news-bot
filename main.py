@@ -1,3 +1,4 @@
+import asyncio
 import logging
 import os
 
@@ -16,10 +17,13 @@ logging.basicConfig(
     format="%(asctime)s | %(levelname)s | %(name)s | %(message)s",
 )
 
+# Request URLs contain the bot token, so keep httpx quiet in logs.
+logging.getLogger("httpx").setLevel(logging.WARNING)
+
 logger = logging.getLogger("MrBiznesNews")
 
 
-def main():
+async def main():
     token = os.getenv("BOT_TOKEN", "").strip()
 
     if not token:
@@ -50,10 +54,24 @@ def main():
 
     logger.info("ArzDigital News Worker: ON")
     logger.info("Wallex News Worker: ON")
+
+    # Start the application WITHOUT polling for updates.
+    # This service only sends outbound news messages, so it
+    # never calls getUpdates. This avoids 409 Conflict with
+    # any other bot or deployment using the same BOT_TOKEN.
+    await application.initialize()
+    await application.start()
+
     logger.info("MrBiznes News Bot: RUNNING")
 
-    application.run_polling()
+    try:
+        # Keep the service alive forever; the JobQueue keeps
+        # checking for fresh news in the background.
+        await asyncio.Event().wait()
+    finally:
+        await application.stop()
+        await application.shutdown()
 
 
 if __name__ == "__main__":
-    main()
+    asyncio.run(main())
