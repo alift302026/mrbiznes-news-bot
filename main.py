@@ -57,14 +57,14 @@ async def main():
 
     application.job_queue.run_repeating(
         market_snapshot_job,
-        interval=14400,
+        interval=43200,
         first=90,
         name="market-snapshot-worker",
     )
 
     logger.info("ArzDigital News Worker: ON")
     logger.info("Wallex News Worker: ON")
-    logger.info("Market Snapshot Worker: ON (every 4h)")
+    logger.info("Market Snapshot Worker: ON (every 12h)")
 
     # Start the application WITHOUT polling for updates.
     # This service only sends outbound messages, so it
